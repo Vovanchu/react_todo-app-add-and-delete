@@ -17,6 +17,7 @@ type Props = {
   setTodos: React.Dispatch<React.SetStateAction<Todo[]>>;
   activeTodoId: number | null;
   setOriginalTitle: (title: string) => void;
+  activeTodoIds: number[];
 };
 
 export const TodoItem: React.FC<Props> = ({
@@ -30,6 +31,7 @@ export const TodoItem: React.FC<Props> = ({
   setTodos,
   activeTodoId,
   setOriginalTitle,
+  activeTodoIds,
 }) => {
   const isSubmittingRef = useRef(false);
 
@@ -71,7 +73,6 @@ export const TodoItem: React.FC<Props> = ({
               setEditingId(null);
             }
 
-            // Скидаємо прапорець після короткої затримки
             setTimeout(() => {
               isSubmittingRef.current = false;
             }, 100);
@@ -120,7 +121,11 @@ export const TodoItem: React.FC<Props> = ({
 
       <div
         data-cy="TodoLoader"
-        className={`modal overlay ${activeTodoId === todo.id ? 'is-active' : ''}`}
+        className={`modal overlay ${
+          activeTodoId === todo.id || activeTodoIds.includes(todo.id)
+            ? 'is-active'
+            : ''
+        }`}
       >
         <div className="modal-background has-background-white-ter" />
         <div className="loader" />

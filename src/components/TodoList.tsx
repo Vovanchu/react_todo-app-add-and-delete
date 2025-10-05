@@ -17,6 +17,7 @@ type Props = {
   setTodos: React.Dispatch<React.SetStateAction<Todo[]>>;
   activeTodoId: number | null;
   setOriginalTitle: (title: string) => void;
+  activeTodoIds: number[];
 };
 
 export const TodoList: React.FC<Props> = props => (

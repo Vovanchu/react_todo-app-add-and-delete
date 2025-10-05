@@ -26,7 +26,8 @@ export const App: React.FC = () => {
   const [todosCount, setTodosCount] = useState<number>(0);
   const [shouldFocus, setShouldFocus] = useState<boolean>(false);
   const [allCompleted, setAllCompleted] = useState<boolean>(false);
-  const [originalTitle, setOriginalTitle] = useState('');
+  const [originalTitle, setOriginalTitle] = useState<string>('');
+  const [activeTodoIds, setActiveTodoIds] = useState<number[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -76,8 +77,10 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (todos.length > 0) {
       setAllCompleted(todos.every(todo => todo.completed));
+    } else {
+      setAllCompleted(false);
     }
-  }, []);
+  }, [todos]);
 
   const handleAddTodo = () => {
     if (!addTodo.trim()) {
@@ -141,7 +144,7 @@ export const App: React.FC = () => {
     deleteTodo(todoId)
       .then(() => {
         setTodos(prev => prev.filter(t => t.id !== todoId));
-        // Закриваємо форму редагування тільки після успішного видалення
+
         setEditingId(null);
       })
       .catch(() => {
@@ -247,24 +250,42 @@ export const App: React.FC = () => {
   };
 
   async function handleClearCompleted() {
+    beforeRequest();
     setIsSubmitting(true);
 
-    const completedTodos = todos.filter(t => t.completed).map(t => t.id);
+    const completedTodos = todos.filter(t => t.completed);
 
-    for (const todosId of completedTodos) {
-      try {
-        await setActiveTodoId(todosId);
-        await deleteTodo(todosId);
+    if (completedTodos.length === 0) {
+      setIsSubmitting(false);
 
-        setTodos(prev => prev.filter(t => t.id !== todosId));
-      } catch {
-        showError('Unable to delete a todo');
-      }
+      return;
     }
 
-    setIsSubmitting(false);
-    setActiveTodoId(null);
-    setShouldFocus(true);
+    // позначаємо, які todo зараз видаляються
+    const idsToDelete = completedTodos.map(t => t.id);
+
+    setActiveTodoIds(idsToDelete);
+    try {
+      const results = await Promise.all(
+        idsToDelete.map(async id => {
+          try {
+            await deleteTodo(id);
+
+            return id;
+          } catch {
+            showError('Unable to delete a todo');
+
+            return null;
+          }
+        }),
+      );
+
+      setTodos(prev => prev.filter(t => !results.includes(t.id)));
+    } finally {
+      setActiveTodoIds([]);
+      setIsSubmitting(false);
+      setShouldFocus(true);
+    }
   }
 
   async function handleToggleAll() {
@@ -325,6 +346,7 @@ export const App: React.FC = () => {
         setTodos={setTodos}
         activeTodoId={activeTodoId}
         setOriginalTitle={setOriginalTitle}
+        activeTodoIds={activeTodoIds}
       />
       <TodoFooter
         todos={todos}
