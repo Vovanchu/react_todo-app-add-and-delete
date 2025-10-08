@@ -50,7 +50,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     getTodosList();
-  }, []);
+  });
 
   useEffect(() => {
     setTimeout(() => {
