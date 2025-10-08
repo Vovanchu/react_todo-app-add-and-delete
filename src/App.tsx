@@ -28,6 +28,7 @@ export const App: React.FC = () => {
   const [allCompleted, setAllCompleted] = useState<boolean>(false);
   const [originalTitle, setOriginalTitle] = useState<string>('');
   const [activeTodoIds, setActiveTodoIds] = useState<number[]>([]);
+  const [enumErrorMessage, setEnumErrorMessage] = useState<number>(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -36,27 +37,19 @@ export const App: React.FC = () => {
     setErrorVisible(true);
   };
 
-  const beforeRequest = () => {
-    setErrorVisible(false);
-  };
-
-  async function getTodo() {
-    beforeRequest();
-
+  async function getTodosList() {
     try {
       const response = await getTodos();
 
       setTodos(response);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error);
+    } catch {
+      setEnumErrorMessage(enumErrorMessage + 1);
       showError('Unable to load todos');
     }
   }
 
   useEffect(() => {
-    getTodo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    getTodosList();
   }, []);
 
   useEffect(() => {
@@ -89,12 +82,10 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Генеруємо тимчасовий ID
     const tempId = Math.max(...todos.map(t => t.id), 0) + 1;
 
-    // Додаємо тимчасовий todo
     const tempTodo: TempTodo = {
-      id: tempId,
+      id: 0 || tempId,
       userId: USER_ID,
       title: addTodo,
       completed: false,
@@ -106,7 +97,6 @@ export const App: React.FC = () => {
     setActiveTodoId(tempId);
     setIsSubmitting(true);
 
-    // Асинхронний запит на сервер
     postTodo({
       id: tempId,
       userId: USER_ID,
@@ -121,6 +111,8 @@ export const App: React.FC = () => {
       })
       .catch(() => {
         setTodos(prev => prev.filter(t => t.id !== tempId));
+        setEnumErrorMessage(enumErrorMessage + 1);
+
         showError('Unable to add a todo');
       })
       .finally(() => {
@@ -131,7 +123,6 @@ export const App: React.FC = () => {
   };
 
   function handleDeleteTodo(todoId: number) {
-    beforeRequest();
     if (!todoId) {
       showError('Unable to delete a todo');
 
@@ -149,7 +140,7 @@ export const App: React.FC = () => {
       })
       .catch(() => {
         showError('Unable to delete a todo');
-        // Форма залишається відкритою при помилці
+        setEnumErrorMessage(enumErrorMessage + 1);
       })
       .finally(() => {
         setActiveTodoId(null);
@@ -159,7 +150,6 @@ export const App: React.FC = () => {
   }
 
   function handleUpdateTodoText(todoId: number, newTitle: string) {
-    beforeRequest();
     const trimmedTitle = newTitle.trim();
 
     setActiveTodoId(todoId);
@@ -180,6 +170,7 @@ export const App: React.FC = () => {
       .catch(() => {
         showError('Unable to update a todo');
         setEditingId(editingId);
+        setEnumErrorMessage(enumErrorMessage + 1);
       })
       .finally(() => {
         setActiveTodoId(null);
@@ -192,8 +183,6 @@ export const App: React.FC = () => {
     title: string,
     newStatus: boolean,
   ) {
-    beforeRequest();
-
     if (!todoId) {
       showError('Unable to update a todo');
 
@@ -214,7 +203,10 @@ export const App: React.FC = () => {
           prev.map(t => (t.id === todoId ? { ...t, completed: newStatus } : t)),
         );
       })
-      .catch(() => showError('Unable to update a todo'))
+      .catch(() => {
+        showError('Unable to update a todo');
+        setEnumErrorMessage(enumErrorMessage + 1);
+      })
       .finally(() => {
         setActiveTodoId(null);
         setIsSubmitting(false);
@@ -242,7 +234,6 @@ export const App: React.FC = () => {
     if (event.key === 'Escape') {
       event.preventDefault();
       setEditingId(null);
-      // Відновлюємо оригінальний title
       setTodos(prev =>
         prev.map(t => (t.id === todoId ? { ...t, title: originalTitle } : t)),
       );
@@ -250,7 +241,6 @@ export const App: React.FC = () => {
   };
 
   async function handleClearCompleted() {
-    beforeRequest();
     setIsSubmitting(true);
 
     const completedTodos = todos.filter(t => t.completed);
@@ -261,7 +251,6 @@ export const App: React.FC = () => {
       return;
     }
 
-    // позначаємо, які todo зараз видаляються
     const idsToDelete = completedTodos.map(t => t.id);
 
     setActiveTodoIds(idsToDelete);
@@ -274,6 +263,7 @@ export const App: React.FC = () => {
             return id;
           } catch {
             showError('Unable to delete a todo');
+            setEnumErrorMessage(enumErrorMessage + 1);
 
             return null;
           }
@@ -308,7 +298,10 @@ export const App: React.FC = () => {
             ),
           );
         })
-        .catch(() => showError(`Unable to toggle todo ${todo.id}`)),
+        .catch(() => {
+          showError(`Unable to toggle todo ${todo.id}`);
+          setEnumErrorMessage(enumErrorMessage + 1);
+        }),
     );
 
     setActiveTodoId(null);

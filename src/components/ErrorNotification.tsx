@@ -11,7 +11,6 @@ export const ErrorNotification: React.FC<ErrorNotificationProps> = ({
   visible,
   onClose,
 }) => {
-  // Автоматичне сховання через 3 сек
   useEffect(() => {
     if (!visible) {
       return;
