@@ -50,7 +50,8 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     getTodosList();
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setTimeout(() => {
